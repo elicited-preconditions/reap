@@ -1,6 +1,6 @@
 # REAP: Learning General Rearrangement Heuristics from Motion-Planner Feedback
 
-![REAP in the five environments](media/teaser.gif)
+![REAP in the five environments](media/teaser.webp)
 
 Robotic rearrangement tasks require planning sequences of actions that fulfill high-level specifications while also
 being geometrically feasible. Symbolic abstractions make the combinatorial structure of rearrangement tasks tractable,
