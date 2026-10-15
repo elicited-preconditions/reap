@@ -1,0 +1,14 @@
+{
+ "rule": "3D stacking: the main ID row reports the best-validation checkpoint on data/stacking/eval without the 6 evaluation problems listed under overlap (89 of 95 problems); the appendix row reports all 95. Ties on the validation score: the last best-validation save.",
+ "eval_set": "data/stacking/eval",
+ "n_eval": 95,
+ "overlap": [
+  "L4_config_004",
+  "L4_config_005",
+  "L4_config_008",
+  "L4_config_011",
+  "L4_config_013",
+  "L4_config_014"
+ ],
+ "n_outside": 89
+}

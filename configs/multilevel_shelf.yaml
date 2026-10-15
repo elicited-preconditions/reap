@@ -1,0 +1,65 @@
+# Multi-level shelf: Table 2, shelf_access_v2 grasp-library checker.
+#   python scripts/train.py --config configs/multilevel_shelf.yaml --seed 1
+#   python scripts/eval.py  --config configs/multilevel_shelf.yaml --seed 1
+# Training values are the logged values of the released runs (paper: the hyperparameter table of the appendix
+# "Training Details"). Reported checkpoint: the final weights (the run directory itself).
+
+env:
+  SHELF_ACCESS_CHECKER: v2
+  CONFINED_CHECKER: honest
+
+train_env:
+  PYTORCH_CUDA_ALLOC_CONF: expandable_segments:True      # memory only
+
+walltime: 24h                    # the reported runs ended at the 24 h walltime (final weights)
+
+train:
+  data_path: multilevel_shelf
+  train_dir: train
+  val_dir: validation
+  domain_file: domain.pddl
+  num_workers: 8
+  pool_workers: 8
+  embedding_size: 64
+  num_layers: 30
+  pooling_mode: mask
+  search_budget: 64
+  search_batching: 64
+  action_cost: 0.5
+  max_infeasible_retries: 2
+  val_max_infeasible_retries: 2
+  budget_growth_threshold: 5
+  budget_max_multiplier: 32       # budget doubles up to 32 x 64 = 2048
+  budget_growth_increment: 1024
+  budget_growth_mode: exponential
+  dead_end_reward: -50
+  lr_readout: 3.7e-4
+  lr_gnn: 1.0e-4
+  max_grad_norm: 1.0
+  max_updates_per_iter: 10
+  buffer_size: 20
+  worker_time_limit_s: 0          # no time limit per training search
+  random_exploration: 0
+  policy_loss_weight: 0.1         # auxiliary policy cross-entropy (paper: Aux. CE); it trains only the GNN trunk
+  wandb_project: multilevel_shelf
+
+eval:
+  checkpoint: checkpoints/multilevel_shelf/seed_{seed}
+  out: outputs/multilevel_shelf/seed_{seed}
+  default: gbfs
+  protocols:
+    gbfs:
+      help: original in-distribution set and OOD, 300 s; in eval/ the in-distribution set of 46 problems with no
+        problem in common with training (Table 2)
+      runner: protocol
+      # the reported evaluations: 180 s per feasibility check, one thread per worker process
+      env: {FILTER_TIMEOUT_S: 180, OMP_NUM_THREADS: 1, MKL_NUM_THREADS: 1, OPENBLAS_NUM_THREADS: 1}
+      args:
+        label: "seed_{seed}"
+        workers: 8
+        max_budget: 16384
+        runs:
+          - {script: eval_protocol, domain: shelf-access, data: multilevel_shelf,
+             specs: ["ID:validation:300:validation", "OOD:eval_ood:300:eval_ood"]}
+          - {script: eval_protocol, domain: shelf-access, data: multilevel_shelf, subdir: eval,
+             specs: ["ID:eval:300:validation"]}

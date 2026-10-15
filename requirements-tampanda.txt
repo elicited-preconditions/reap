@@ -1,0 +1,4 @@
+# TAMPanda, the feasibility checkers behind the paper's numbers (installed next to requirements.txt, not as a dependency
+# of the package; see README.md, "Install"). From a local clone instead: pip install ./TAMPanda after
+# "git -C TAMPanda checkout v1.1.0", or: tampanda @ git+file:///<absolute path to the clone>@v1.1.0
+tampanda @ git+https://github.com/snoato/TAMPanda.git@v1.1.0

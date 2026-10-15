@@ -1,0 +1,25 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "reap"
+version = "1.0.0"
+description = "REAP: Learning General Rearrangement Heuristics from Motion-Planner Feedback"
+readme = "README.md"
+authors = [{ name = "Daniel Swoboda" }]
+license = { file = "LICENSE" }
+requires-python = ">=3.12"
+dynamic = ["dependencies"]
+
+[tool.setuptools.dynamic]
+dependencies = { file = ["requirements.txt"] }
+
+[tool.setuptools.packages.find]
+# flat layout: the package reap/ at the repository root; the baselines' inner packages sahs, ploi and bt_h are
+# importable as top-level packages too
+where = [".", "baselines/sahs", "baselines/ploi", "baselines/bt_h"]
+include = ["reap*", "sahs*", "ploi*", "bt_h*"]
+
+[tool.setuptools.package-data]
+"*" = ["*.pddl", "*.json"]

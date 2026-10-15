@@ -1,0 +1,15 @@
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+# assets and outputs (see README.md): extract or point REAP_DATA / REAP_CKPT / REAP_OUT elsewhere; assets/ holds the
+# tarballs of scripts/download_assets.sh
+/data/*/*
+!/data/*/domain.pddl
+/checkpoints/
+/outputs/
+wandb/
+/assets/
+# training logs of the README commands (... | tee logs/<name>.log)
+/logs/

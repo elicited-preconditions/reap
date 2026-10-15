@@ -1,0 +1,79 @@
+# Access-19: Table 2, the single goal-conditioned policy and the two-phase pipeline (target-only extraction policy,
+# then the reload policy). Three training runs per seed folder:
+#   single      python scripts/train.py --config configs/access19.yaml --seed 1
+#   extraction  python scripts/train.py --config configs/access19.yaml --seed 1 --train_dir train_extraction \
+#                   --val_dir validation_extraction --search_batching 4 --num_workers 8 --pool_workers 8
+#   reload      python scripts/train.py --config configs/access19.yaml --seed 1 --train_dir train_reload \
+#                   --val_dir validation_reload --search_batching 1 --max_infeasible_retries 8 --num_workers 8 \
+#                   --pool_workers 8
+# Training values are the logged values of the released runs (paper: the hyperparameter table of the appendix
+# "Training Details"). Reported checkpoints:
+#   single/      most replay-verified solves on data/access19/selection (93 problems, 100 s) among checkpoint_20 and
+#                later; ties: fewer mean MP calls, then the later one (released picks: checkpoint_230, _27, _33):
+#                python scripts/select_checkpoint.py selection_set --run_dir <run directory>
+#   extraction/  final weights (28 to 73 h; seeds 1 and 2 were restarted from their own weights, WARMSTART_CKPT)
+#   reload/      best validation over the run, ties to the later save (the released runs: chains of three runs,
+#                4.6 days in all): python scripts/select_checkpoint.py best_val --log <log> [--log <next log> ...]
+
+train_env:
+  CKPT_PERIOD: 10                # also save every 10th validation pass (candidates for the single-policy selection)
+  FILTER_TIMEOUT_S: 20           # per feasibility check in training
+  ACT_CKPT: 1                    # memory only
+  MEM_LOG: 1                     # logging only
+  PYTORCH_CUDA_ALLOC_CONF: expandable_segments:True
+
+train:
+  data_path: access19
+  train_dir: train
+  val_dir: validation
+  domain_file: domain.pddl
+  num_workers: 16
+  pool_workers: 16
+  embedding_size: 96
+  num_layers: 30
+  pooling_mode: mask
+  search_budget: 64
+  search_batching: 64
+  action_cost: 0.5
+  max_infeasible_retries: 2
+  val_max_infeasible_retries: 2
+  budget_growth_threshold: 2      # the budget grows from the 2nd consecutive failure (other environments: 5th)
+  budget_max_multiplier: 32       # budget doubles up to 32 x 64 = 2048
+  budget_growth_increment: 1024
+  budget_growth_mode: exponential
+  dead_end_reward: -50
+  lr_readout: 3.7e-4
+  lr_gnn: 1.0e-4
+  max_grad_norm: 1.0
+  max_updates_per_iter: 10
+  buffer_size: 20
+  worker_time_limit_s: 0          # no time limit per training search
+  random_exploration: 0
+  policy_loss_weight: 0.1         # auxiliary policy cross-entropy (paper: Aux. CE); it trains only the GNN trunk
+  easy_first: false
+  wandb_project: access19
+
+eval:
+  out: outputs/access19
+  default: main
+  protocols:
+    main:
+      help: single policy and two-phase pipeline, sharded (set names as reap.eval.access19_report reads them)
+      runner: access19
+      env: {OMP_NUM_THREADS: 6, MKL_NUM_THREADS: 6, FILTER_TIMEOUT_S: 30}   # the reported evaluations
+      args:
+        seed: "{seed}"
+        single: checkpoints/access19/seed_{seed}/single
+        extraction: checkpoints/access19/seed_{seed}/extraction
+        reload: checkpoints/access19/seed_{seed}/reload
+        nproc: 1
+        sets:
+          # the in-distribution set data/access19/eval and the 8 18-blocker benchmark files data/access19/eval_ood
+          # (100 s); the 72 new 18-blocker layouts in two halves, the files obj18_a_* and obj18_b_* of
+          # data/access19/eval_18blocker (300 s)
+          id_ood: {sets: "validation,eval_ood", a19_sets: "validation=eval,eval_ood=eval_ood", tl: 100,
+                   nshards: 10}
+          eval_18blocker_a: {sets: eval_18blocker_a, a19_sets: "eval_18blocker_a=eval_18blocker/obj18_a_*.pddl",
+                             tl: 300, nshards: 10}
+          eval_18blocker_b: {sets: eval_18blocker_b, a19_sets: "eval_18blocker_b=eval_18blocker/obj18_b_*.pddl",
+                             tl: 300, nshards: 10}

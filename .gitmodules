@@ -1,0 +1,3 @@
+[submodule "baselines/pddlstream/pddlstream"]
+	path = baselines/pddlstream/pddlstream
+	url = https://github.com/caelan/pddlstream.git

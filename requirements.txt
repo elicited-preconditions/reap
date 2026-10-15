@@ -1,0 +1,40 @@
+# Dependencies of this repository, pinned to the versions of the environment that produced the paper's numbers
+# (Python 3.12.7). pyproject.toml reads this file as the package's dependencies, so TAMPanda is NOT listed here (it is in
+# requirements-tampanda.txt; see README.md, "Install"):
+#   pip install -e . -r requirements-tampanda.txt
+# Native extras for the 3D-stacking checks only (frantik, vamp-planner 0.6.4): see README.md, "Install".
+colorama==0.4.6
+fire==0.7.1
+imageio==2.37.3
+Jinja2==3.1.6
+jsonargparse==4.44.0
+klepto==0.2.7
+lightning==2.5.0
+lmdb==1.7.5
+matplotlib==3.10.8
+mujoco==3.4.0
+multimethod==2.0.2
+networkx==3.6.1
+numpy==2.2.6
+pandas==2.3.3
+pymimir==0.13.62
+PyYAML==6.0.3
+rustworkx==0.17.1
+scipy==1.17.0
+tensordict==0.11.0
+torch==2.14.0
+torch-geometric==2.7.0
+torchmetrics==1.8.2
+torchrl==0.11.1
+tqdm==4.67.1
+typing_extensions==4.15.0
+wandb==0.23.1               # optional at run time: offline by default (WANDB_MODE)
+# not on PyPI at the version used (0.2.0; PyPI starts at 0.3.1): the exact commit of the environment
+mifrost @ git+https://github.com/maichmueller/mifrost.git@cd612e966b41b87206b4185a0af069aa03da5a07
+# used by TAMPanda's checkers (its MINK IK uses the "quadprog" QP solver); TAMPanda 1.1.0 declares both, they are
+# pinned here to the versions of the environment behind the paper's numbers, because newer releases resolve otherwise
+quadprog==0.1.13
+mink==1.0.0
+qpsolvers==4.8.2
+daqp==0.7.2
+opencv-python==4.12.0.88

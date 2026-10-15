@@ -1,0 +1,22 @@
+# Python dependencies of the PDDLStream baseline scripts (Python 3.12), pinned to the environment the release was
+# tested in; the overlapping pins match the main REAP repository's requirements.
+#   pip install -r requirements.txt
+# pddlstream and Fast Downward are NOT pip packages here: they come from the baselines/pddlstream/pddlstream git
+# submodule (see README.md, "Building upstream").
+#
+# TAMPanda (tabletop scene + feasibility checker), https://github.com/snoato/TAMPanda, tag v1.1.0.
+# Alternatively, install from a local clone at that tag: pip install /path/to/TAMPanda
+tampanda @ git+https://github.com/snoato/TAMPanda.git@v1.1.0
+numpy==2.2.6
+scipy==1.17.0
+mujoco==3.4.0
+# used by TAMPanda's IK (mink + the quadprog QP solver), not all declared by TAMPanda 1.1.0;
+# pinned because newer releases resolve differently
+mink==1.0.0
+qpsolvers==4.8.2
+daqp==0.7.2
+quadprog==0.1.13
+# other TAMPanda imports
+opencv-python==4.12.0.88
+matplotlib==3.10.8
+loop-rate-limiters==1.2.0

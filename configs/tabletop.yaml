@@ -1,0 +1,114 @@
+# Open tabletop: Table 1 (REAP-GBFS, REAP-greedy, hFF, BrFS), Fig. 3, sample efficiency (appendix "Open-Tabletop
+# Ablations and Sample Efficiency"), base rate of infeasible actions, execution under perturbed observations
+# (appendix "Execution Under Perturbed Observations").
+#   python scripts/train.py --config configs/tabletop.yaml --seed 1
+#   python scripts/eval.py  --config configs/tabletop.yaml --seed 1 --protocol gbfs
+# Training values are the logged values of the released runs (paper: the hyperparameter table of the appendix
+# "Training Details"). Variants:
+#   checkpoints/tabletop/seed_1..3   this file
+#   checkpoints/tabletop/seed_4..5   --worker_time_limit_s 0 (also the noise run; its checkpoint is not shipped)
+#   sample efficiency, seeds 1..3 (checkpoints not shipped; evaluate with --checkpoint <dir>)
+#                                    --train_dir train_n100 | train_n200 | train_n400 --max_infeasible_retries 0
+#                                    --val_max_infeasible_retries 1 --worker_time_limit_s 0
+# Reported checkpoint: the last best validation save (40 problems, greedy), i.e. the highest checkpoint/checkpoint_<N>;
+# python scripts/select_checkpoint.py best_val --log <training log> prints it.
+
+env:
+  FILTER_TIMEOUT_S: 0            # the Table 1 runs (training and evaluation) used no per-check timeout
+
+walltime: null                   # the reported runs were stopped by hand after 27-30 h (last best save at 23-27 h)
+
+train:
+  data_path: tabletop
+  train_dir: train
+  val_dir: validation
+  domain_file: domain.pddl
+  num_workers: 10
+  pool_workers: 5
+  embedding_size: 32
+  num_layers: 30
+  pooling_mode: mask
+  search_budget: 4096
+  search_batching: 64
+  action_cost: 0.5
+  max_infeasible_retries: 2       # retries in training (sample efficiency: 0)
+  val_max_infeasible_retries: 2   # retries in the training-time validation (sample efficiency: 1)
+  budget_growth_threshold: 5
+  budget_max_multiplier: 4        # budget cap 4 x 4096 = 16384
+  budget_growth_increment: 1024
+  budget_growth_mode: additive
+  dead_end_reward: -50
+  lr_readout: 3.7e-4
+  lr_gnn: 1.0e-4
+  max_grad_norm: 1.0
+  max_updates_per_iter: 10
+  buffer_size: 20
+  random_exploration: 0.2
+  worker_time_limit_s: 60         # seeds 1-3; seeds 4-5, noise and sample efficiency: 0 (no limit)
+  policy_loss_weight: 0           # the Table 1, sample-efficiency and noise runs had no auxiliary policy loss
+  wandb_project: tabletop
+
+eval:
+  checkpoint: checkpoints/tabletop/seed_{seed}
+  default: gbfs
+  protocols:
+    gbfs:                        # deployment: budget 16384, 3 motion-planner retries, 300 s per problem
+      help: REAP-GBFS row of Table 1 (also Fig. 3 and the per-seed table of the appendix "Open-Tabletop Ablations and
+        Sample Efficiency")
+      runner: suite
+      out: outputs/tabletop/reap_gbfs
+      args: {label: "seed_{seed}", search_mode: gbfs, filter_actions: true, val_retries: 3, max_budget: 16384,
+             time_limit_s: 300}
+    greedy:
+      help: REAP-greedy row of Table 1
+      runner: suite
+      out: outputs/tabletop/reap_greedy
+      args: {label: "seed_{seed}", search_mode: greedy, val_retries: 2, max_budget: 1000, time_limit_s: 60}
+    hff:
+      help: hFF search baseline (the checkpoint is loaded but not used)
+      runner: suite
+      checkpoint: checkpoints/tabletop/seed_1
+      out: outputs/tabletop
+      args: {label: hff, search_mode: hff, filter_actions: true, val_retries: 3, max_budget: 16384, time_limit_s: 300}
+    brfs:
+      help: BrFS search baseline (the checkpoint is loaded but not used)
+      runner: suite
+      checkpoint: checkpoints/tabletop/seed_1
+      out: outputs/tabletop
+      args: {label: brfs, search_mode: bfs, filter_actions: true, val_retries: 3, max_budget: 16384, time_limit_s: 300}
+    sample_efficiency:
+      help: sample efficiency (appendix "Open-Tabletop Ablations and Sample Efficiency"), checkpoints trained on n100 /
+        n200 / n400 problems (--size), seeds 1-3
+      runner: suite
+      vars: {size: n100}
+      checkpoint: checkpoints/sample_efficiency/{size}/seed_{seed}
+      out: outputs/sample_efficiency/{size}
+      args: {label: "seed_{seed}", search_mode: gbfs, filter_actions: true, val_retries: 3, max_budget: 16384,
+             time_limit_s: 300}
+    base_rate:
+      help: base rate of infeasible actions and rank-1 infeasibility under Q (Section "Benchmark Results"), and how
+        often a repeated check changes its verdict (appendix "Environments")
+      runner: base_rate
+      pass_checkpoint: false
+      out: outputs/tabletop/base_rate
+      args:
+        sets: [obj10, obj12, obj14, obj16, obj18, obj20, obj22, obj24, obj10_plan3, obj12_plan3, obj14_plan5,
+               obj16_plan5, obj10_plan5_biased2, obj12_plan7_biased3, obj14_plan9_biased3]
+    noise:
+      help: execution under perturbed observations (appendix "Execution Under Perturbed Observations"), the noise
+        checkpoint
+      runner: noise
+      checkpoint: checkpoints/noise/seed_1
+      out: outputs/noise
+      args:
+        n: 0
+        cells: [[gbfs, n1, 0.002], [gbfs, n1, 0.005], [gbfs, n1, 0.010], [gbfs, n2, 0.01], [gbfs, n2, 0.02],
+                [gbfs, n2, 0.05], [gbfs, n3, 0.02], [gbfs, n3, 0.05], [gbfs, n3, 0.10],
+                [greedy, n1, 0.002], [greedy, n1, 0.005], [greedy, n1, 0.010], [greedy, n2, 0.01], [greedy, n2, 0.02],
+                [greedy, n2, 0.05], [greedy, n3, 0.02], [greedy, n3, 0.05], [greedy, n3, 0.10]]
+
+# Option defaults of the baselines' run.py (python baselines/<name>/run.py --help); empty = the run.py defaults.
+baselines:
+  sahs: {}
+  ploi: {}
+  bt_h: {}

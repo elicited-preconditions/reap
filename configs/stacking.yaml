@@ -1,0 +1,62 @@
+# 3D block stacking: Table 2, grip-aware check. Needs A19V2_PYLIB (TAMPanda's variable: the
+# directory, or os.pathsep-joined directories, holding frantik and vamp).
+#   python scripts/train.py --config configs/stacking.yaml --seed 1 2>&1 | tee train_s1.log
+#   python scripts/eval.py  --config configs/stacking.yaml --seed 1 --kind best_val     (or --kind final)
+# Training values are the logged values of the released runs (paper: the hyperparameter table of the appendix
+# "Training Details"). Reported checkpoints:
+#   best_val/  the last best validation save on data/stacking/validation (99 problems):
+#              python scripts/select_checkpoint.py best_val --log train_s1.log
+#   final/     the run directory's weights at the 60 h walltime
+
+env:
+  MLB_CHECKER: honest_grip
+
+train_env:
+  FILTER_TIMEOUT_S: 120          # per feasibility check in training
+  CKPT_PERIOD: 10                # also save every 10th validation pass ("periodic"); best_val ignores these
+  ACT_CKPT: 1                    # memory only (activation checkpointing)
+  MEM_LOG: 1                     # logging only (peak GPU memory)
+  PYTORCH_CUDA_ALLOC_CONF: expandable_segments:True
+
+walltime: 60h                    # the reported runs ended at the 60 h walltime
+
+train:
+  data_path: stacking
+  train_dir: train
+  val_dir: validation
+  domain_file: domain.pddl
+  num_workers: 16
+  pool_workers: 5
+  embedding_size: 64
+  num_layers: 30
+  pooling_mode: mask
+  search_budget: 64
+  search_batching: 64
+  action_cost: 0.5
+  max_infeasible_retries: 2
+  val_max_infeasible_retries: 2
+  budget_growth_threshold: 5
+  budget_max_multiplier: 64       # budget doubles up to 64 x 64 = 4096
+  budget_growth_increment: 1024
+  budget_growth_mode: exponential
+  dead_end_reward: -50
+  lr_readout: 3.7e-4
+  lr_gnn: 1.0e-4
+  max_grad_norm: 1.0
+  max_updates_per_iter: 10
+  buffer_size: 20
+  worker_time_limit_s: 0          # no time limit per training search
+  random_exploration: 0.1
+  policy_loss_weight: 0.1         # auxiliary policy cross-entropy (paper: Aux. CE); it trains only the GNN trunk
+  wandb_project: stacking
+
+eval:
+  default: gbfs
+  protocols:
+    gbfs:
+      help: GBFS protocol, plans, continuous verification of every plan, report (--kind best_val | final)
+      runner: stacking
+      vars: {kind: best_val}
+      checkpoint: checkpoints/stacking/seed_{seed}/{kind}
+      out: outputs/stacking/seed_{seed}/{kind}
+      args: {data: stacking, nproc: 4, verify_shards: 40}
